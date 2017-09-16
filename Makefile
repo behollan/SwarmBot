@@ -111,6 +111,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named ArucoGen
+
+# Build rule for target.
+ArucoGen: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 ArucoGen
+.PHONY : ArucoGen
+
+# fast build rule for target.
+ArucoGen/fast:
+	$(MAKE) -f CMakeFiles/ArucoGen.dir/build.make CMakeFiles/ArucoGen.dir/build
+.PHONY : ArucoGen/fast
+
+#=============================================================================
 # Target rules for targets named SwarmHost
 
 # Build rule for target.
@@ -122,6 +135,33 @@ SwarmHost: cmake_check_build_system
 SwarmHost/fast:
 	$(MAKE) -f CMakeFiles/SwarmHost.dir/build.make CMakeFiles/SwarmHost.dir/build
 .PHONY : SwarmHost/fast
+
+ARTags.o: ARTags.cpp.o
+
+.PHONY : ARTags.o
+
+# target to build an object file
+ARTags.cpp.o:
+	$(MAKE) -f CMakeFiles/ArucoGen.dir/build.make CMakeFiles/ArucoGen.dir/ARTags.cpp.o
+.PHONY : ARTags.cpp.o
+
+ARTags.i: ARTags.cpp.i
+
+.PHONY : ARTags.i
+
+# target to preprocess a source file
+ARTags.cpp.i:
+	$(MAKE) -f CMakeFiles/ArucoGen.dir/build.make CMakeFiles/ArucoGen.dir/ARTags.cpp.i
+.PHONY : ARTags.cpp.i
+
+ARTags.s: ARTags.cpp.s
+
+.PHONY : ARTags.s
+
+# target to generate assembly for a file
+ARTags.cpp.s:
+	$(MAKE) -f CMakeFiles/ArucoGen.dir/build.make CMakeFiles/ArucoGen.dir/ARTags.cpp.s
+.PHONY : ARTags.cpp.s
 
 main.o: main.cpp.o
 
@@ -158,7 +198,11 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... ArucoGen"
 	@echo "... SwarmHost"
+	@echo "... ARTags.o"
+	@echo "... ARTags.i"
+	@echo "... ARTags.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"

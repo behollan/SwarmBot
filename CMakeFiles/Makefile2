@@ -60,13 +60,50 @@ CMAKE_SOURCE_DIR = /home/behollan/dev/SwarmBot
 CMAKE_BINARY_DIR = /home/behollan/dev/SwarmBot
 
 #=============================================================================
+# Target rules for target CMakeFiles/ArucoGen.dir
+
+# All Build rule for target.
+CMakeFiles/ArucoGen.dir/all:
+	$(MAKE) -f CMakeFiles/ArucoGen.dir/build.make CMakeFiles/ArucoGen.dir/depend
+	$(MAKE) -f CMakeFiles/ArucoGen.dir/build.make CMakeFiles/ArucoGen.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/behollan/dev/SwarmBot/CMakeFiles --progress-num=1,2 "Built target ArucoGen"
+.PHONY : CMakeFiles/ArucoGen.dir/all
+
+# Include target in all.
+all: CMakeFiles/ArucoGen.dir/all
+
+.PHONY : all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/ArucoGen.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/behollan/dev/SwarmBot/CMakeFiles 2
+	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/ArucoGen.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/behollan/dev/SwarmBot/CMakeFiles 0
+.PHONY : CMakeFiles/ArucoGen.dir/rule
+
+# Convenience name for target.
+ArucoGen: CMakeFiles/ArucoGen.dir/rule
+
+.PHONY : ArucoGen
+
+# clean rule for target.
+CMakeFiles/ArucoGen.dir/clean:
+	$(MAKE) -f CMakeFiles/ArucoGen.dir/build.make CMakeFiles/ArucoGen.dir/clean
+.PHONY : CMakeFiles/ArucoGen.dir/clean
+
+# clean rule for target.
+clean: CMakeFiles/ArucoGen.dir/clean
+
+.PHONY : clean
+
+#=============================================================================
 # Target rules for target CMakeFiles/SwarmHost.dir
 
 # All Build rule for target.
 CMakeFiles/SwarmHost.dir/all:
 	$(MAKE) -f CMakeFiles/SwarmHost.dir/build.make CMakeFiles/SwarmHost.dir/depend
 	$(MAKE) -f CMakeFiles/SwarmHost.dir/build.make CMakeFiles/SwarmHost.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/behollan/dev/SwarmBot/CMakeFiles --progress-num=1,2 "Built target SwarmHost"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/behollan/dev/SwarmBot/CMakeFiles --progress-num=3,4 "Built target SwarmHost"
 .PHONY : CMakeFiles/SwarmHost.dir/all
 
 # Include target in all.
