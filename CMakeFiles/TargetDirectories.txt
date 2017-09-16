@@ -1,0 +1,3 @@
+/home/behollan/dev/SwarmBot/CMakeFiles/edit_cache.dir
+/home/behollan/dev/SwarmBot/CMakeFiles/rebuild_cache.dir
+/home/behollan/dev/SwarmBot/CMakeFiles/SwarmHost.dir
