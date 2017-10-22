@@ -5,6 +5,8 @@
 using namespace std;
 using namespace cv;
 
+
+
 namespace {
 const char* about = "Basic marker detection";
 const char* keys  =
