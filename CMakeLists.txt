@@ -14,8 +14,7 @@ set (SwarmHost_VERSION_PATCH 0)
 
 #### File Location Includes
 include_directories(
-    include
-    ${PROJECT_BINARY_DIR}
+    include ${PROJECT_BINARY_DIR}
     )
 set( SOURCES
     src/main.cpp
@@ -34,11 +33,12 @@ configure_file(
 
 
 #### Library Inclusion
+set (OpenCV_DIR ~/openCV/build)
+include_directories( ${OpenCV_INCLUDE_DIRS} )
 find_package( OpenCV REQUIRED )
-
 include_directories( /usr/include/readline )
 
 #### Build the project
 
 add_executable( ${projectName} ${SOURCES} )
-target_link_libraries(${projectName} ${OpenCV_LIBS} readline)
+target_link_libraries(${projectName} ${OpenCV_LIBS} readline )

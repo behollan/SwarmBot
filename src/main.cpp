@@ -7,8 +7,6 @@
 #include <ostream>
 #include "include/SwarmHostConfig.h"
 #include "../include/arucoTest.h"
-#include <readline/readline.h>
-#include <readline/history.h>
 
 #include <typeinfo>
 
