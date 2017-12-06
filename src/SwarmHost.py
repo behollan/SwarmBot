@@ -134,8 +134,8 @@ def findHomo():
 
     # Draw the ChAruco Board in a projector window
     aruco_dict = aruco.getPredefinedDictionary(0)
-    board = aruco.CharucoBoard_create(4, 3 , 1824/4 , 1824/4/2, aruco_dict)
-    board_image = board.draw((1824,984))
+    board = aruco.CharucoBoard_create(4, 3 , 1024/4 , 1024/4/2, aruco_dict)
+    board_image = board.draw((1024,768))
     # Copy of image for adding prompt text
     board_image_prompt = board_image
     cv2.putText(board_image_prompt, "Verify image is shown on projector in full screen.",(14,20),font,0.5,(0,0,0))
@@ -150,6 +150,9 @@ def findHomo():
     # Charuco Board Corners
     pts_src = board.chessboardCorners
     pts_src = np.delete(pts_src,2,1)
+    
+    pts_src = np.roll(pts_src,-3,axis=0)
+
     print("Printed Corner Locations (Projector Frame): ")
     print(pts_src)
     
@@ -174,7 +177,7 @@ def findHomo():
     # Close all windows
     cv2.destroyAllWindows()
     # Detect Charuco Checkerboard corners and IDs
-    corners, ids, _ = aruco.detectMarkers(homoCapture, aruco_dict, parameters=arucoParams, cameraMatrix=mtx, distCoeffs=dist)
+    corners, ids, _ = aruco.detectMarkers(homoCapture, aruco_dict, parameters=arucoParams, cameraMatrix=mtx,distCoeff=dist)
     retval, charucoCorners, charucoIds = aruco.interpolateCornersCharuco(corners, ids, homoCapture, board, cameraMatrix=mtx, distCoeffs=dist)
     
     # Draw the detected markers
@@ -192,7 +195,9 @@ def findHomo():
 
     cv2.imshow("Detected Markers",homoCapture)
     cv2.waitKey(0)
-
+    print("Finding homography between:")
+    print(pts_src)
+    print(charucoCorners)
     homo = cv2.findHomography(pts_src, charucoCorners)
     print("\nHomography Matrix:")
     print(homo[0])
@@ -222,14 +227,14 @@ def homoTest():
     while(1):
         ret, im_src = cap.read()
         ids = None
-        markerImage = np.zeros((1824,984,3),np.uint8)
+        markerImage = np.zeros((1024,768,3),np.uint8)        
         if ret is True:
             corners, ids, _ = aruco.detectMarkers(im_src, aruco_dict, parameters=arucoParams, cameraMatrix=mtx, distCoeff=dist)
             
             if ids is not None: # Check if any markers were detected and draw them
                 print("Marker(s) Detected.")
-                markerImage = aruco.drawDetectedMarkers(markerImage, corners, ids, (255,0,0))
-                im_out = cv2.warpPerspective(markerImage, h, (1824, 984))
+                markerImage = aruco.drawDetectedMarkers(markerImage, corners, None, (255,0,0))
+                im_out = cv2.warpPerspective(markerImage, h, (1024, 768),flags=cv2.WARP_INVERSE_MAP)
                 cv2.namedWindow("Homography Applied", cv2.WND_PROP_FULLSCREEN )
                 cv2.setWindowProperty("Homography Applied", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                 cv2.imshow('Homography Applied', im_out)
