@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # coding: utf-8
-"""zo
+"""
    _____                              __  __           __ 
   / ___/      ______ __________ ___  / / / /___  _____/ /_
   \__ \ | /| / / __ `/ ___/ __ `__ \/ /_/ / __ \/ ___/ __/
@@ -21,20 +21,22 @@ Authors:	Ben Holland
 			jmcneely@mines.edu
 
 Usage: 
-    SwarmHost (-h | --help)
-    SwarmHost (-v | --version) 
+    SwarmHost -h | --help
+    SwarmHost -v | --version 
     SwarmHost calibrate --outfile=<FILE> [--infile=<FILE>]
-    SwarmHost homography --calibFile=<FILE> [--matrix=<FILE>]
+    SwarmHost homography --calibFile=<FILE> [--outfile=<FILE>]
     SwarmHost listBots
     SwarmHost arucoTest [--calibFile=<FILE> --dict=<INT>]
     SwarmHost loadParams --calibFile=<FILE>
-    
+    SwarmHost homoTest [--calibFile=<FILE> --homography=<FILE>] 
+
 Options:
     -o=<FILE> --outfile=<FILE> 	        Location of output calibration file
     -i FILE --infile=<FILE>    	        Location of input calibration file
     --matrix=<FILE>   	                Homography matrix file, .CSV format
     -c FILE --calibFile=<FILE>  	Path of calibration file
     -d=<INT> --dict=<INT>		Standard Aruco Dictionary Value, see wiki
+    --homography=<FILE>                 Homography matrix file location
 """
 
 ## New main console application, cause Python > C++
@@ -136,8 +138,8 @@ def findHomo():
     board_image = board.draw((1824,984))
     # Copy of image for adding prompt text
     board_image_prompt = board_image
-    cv2.putText(board_image_prompt, "Verify image is shown on projector in full screen.",(14,20),font,0.5,(255,0,0))
-    cv2.putText(board_image_prompt, "Press ENTER to continue.", (14,40), font, 0.5, (255,0,255)) 
+    cv2.putText(board_image_prompt, "Verify image is shown on projector in full screen.",(14,20),font,0.5,(0,0,0))
+    cv2.putText(board_image_prompt, "Press ENTER to continue.", (14,40), font, 0.5, (0,0,0)) 
     # Put prompt image full screen on the projector window.
     cv2.namedWindow("Calibration Image", cv2.WND_PROP_FULLSCREEN )
     cv2.setWindowProperty("Calibration Image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -148,6 +150,7 @@ def findHomo():
     # Charuco Board Corners
     pts_src = board.chessboardCorners
     pts_src = np.delete(pts_src,2,1)
+    print("Printed Corner Locations (Projector Frame): ")
     print(pts_src)
     
     # Setup camera for image
@@ -171,31 +174,69 @@ def findHomo():
     # Close all windows
     cv2.destroyAllWindows()
     # Detect Charuco Checkerboard corners and IDs
-    corners, ids, _ = aruco.detectMarkers(homoCapture, aruco_dict, parameters=arucoParams)
+    corners, ids, _ = aruco.detectMarkers(homoCapture, aruco_dict, parameters=arucoParams, cameraMatrix=mtx, distCoeffs=dist)
     retval, charucoCorners, charucoIds = aruco.interpolateCornersCharuco(corners, ids, homoCapture, board, cameraMatrix=mtx, distCoeffs=dist)
     
     # Draw the detected markers
     aruco.drawDetectedCornersCharuco(homoCapture, charucoCorners, charucoIds)
-
-    corner = charucoCorners.getMat().at(1)
-    print(corner)
+    
+    print("Detected Corners (Camera Frame): ")
+    
+    charucoCorners = np.squeeze(charucoCorners) # Resize Charuco corner array
+    print(charucoCorners) # Print detected chessboard corners
+    
+    cv2.arrowedLine(homoCapture, (0,0),(50,0), (0,0,255),1)
+    cv2.arrowedLine(homoCapture, (0,0),(0,50), (0,0,255),1)
+    cv2.putText(homoCapture, "x", (50,10),font,0.5,(0,0,255)) 
+    cv2.putText(homoCapture, "y", (5,50),font,0.5,(0,0,255)) 
 
     cv2.imshow("Detected Markers",homoCapture)
     cv2.waitKey(0)
 
-
-
-    #corners = [item[0] for item in corners] # Pop off the outermost array
-    #corners = [item[0] for item in corners] # Grab just the bottom left corner
-
-    # Print out the bottom corner locations for each square. 
-    
-    for i in range(0,len(ids)):
-        print(corners[i])
-        print(ids[i])
-    
+    homo = cv2.findHomography(pts_src, charucoCorners)
+    print("\nHomography Matrix:")
+    print(homo[0])
+    if arguments["--outfile"] is not None:
+        print("Saving file to " + arguments["--outfile"])
+        np.savetxt(arguments["--outfile"],homo[0])
     return
 
+def homoTest():
+    """
+    homoTest detects a marker and prints a location on the screen defined by the homography matrix given
+    Used to test a homography transform created using findHomo()
+    """
+
+    h = np.loadtxt(arguments["--homography"])
+    print(h)
+    cap = cv2.VideoCapture(0)
+    aruco_dict = aruco.getPredefinedDictionary(0)
+    
+    # Load camera calibration Parameters
+    calibrationFile = arguments["--calibFile"]
+    calibParams = cv2.FileStorage(calibrationFile, cv2.FILE_STORAGE_READ)
+    mtx = calibParams.getNode("cameraMatrix").mat()
+    dist = calibParams.getNode("distCoeffs").mat()
+    
+    arucoParams = aruco.DetectorParameters_create()
+    while(1):
+        ret, im_src = cap.read()
+        ids = None
+        markerImage = np.zeros((1824,984,3),np.uint8)
+        if ret is True:
+            corners, ids, _ = aruco.detectMarkers(im_src, aruco_dict, parameters=arucoParams, cameraMatrix=mtx, distCoeff=dist)
+            
+            if ids is not None: # Check if any markers were detected and draw them
+                print("Marker(s) Detected.")
+                markerImage = aruco.drawDetectedMarkers(markerImage, corners, ids, (255,0,0))
+                im_out = cv2.warpPerspective(markerImage, h, (1824, 984))
+                cv2.namedWindow("Homography Applied", cv2.WND_PROP_FULLSCREEN )
+                cv2.setWindowProperty("Homography Applied", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+                cv2.imshow('Homography Applied', im_out)
+        
+        if cv2.waitKey(1) & 0xFF== ord('q'): # If ESC is pressed, break the test loop
+            break
+    
 if __name__=='__main__':
     arguments = docopt(__doc__, version='Swarm Host 0.1')
     print(arguments)
@@ -214,4 +255,5 @@ if __name__=='__main__':
     elif arguments["homography"] == True:
 	findHomo()
 
-
+    elif arguments["homoTest"] == True:
+        homoTest()
