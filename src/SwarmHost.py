@@ -312,7 +312,8 @@ def helloWorld():
 
     Messages are sent to the location of the aruco tag offset by 2 inches
     '''
-    
+    # Logging performance runs
+    f = open("perf.log", 'a+')
     print("Running hello world!\n\n")
     print("Loading Parameters...")
     
@@ -338,16 +339,17 @@ def helloWorld():
     
     # Generate detector parameters
     arucoParams = aruco.DetectorParameters_create()
-    
+    arucoParams.adaptiveThreshConstant = 30
+
     # Set refresh rate parameters
-    fps = 7 # Projector update frames per second
+    fps = 5 # Projector update frames per second
     refresh_rate = 1.0/fps # Clock rate (Hz)
 
     # Print loaded config properties
     print("\nCamera Calibration Matrix: \n" + str(mtx))
     print("\nDistortion coefficients: \n" + str(dist))
-    print("\nFrame rate: " + str(fps))
-
+    print("\nFrames per second: " + str(fps))
+    print("\t"+str(1.0/fps)+" seconds/frame")
     time.sleep(3)
 
     # Start main detection and projection loop
@@ -358,25 +360,41 @@ def helloWorld():
     
     # Run the main projection and detection loop until 'q' is held down
     while(1):
-        # Get the current webcam image
-        ret, im_src = cap.read()
+        # Set output window properties
+        cv2.namedWindow("Homography Applied", cv2.WND_PROP_FULLSCREEN )
+        cv2.setWindowProperty("Homography Applied", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         
         # Set up placeholder arrays for the marker image and ID values
         ids = None
-        markerImage = np.zeros((1024,768,3),np.uint8)        
+        markerImage = np.zeros((1024,768,3),np.uint8)
+        cv2.imshow('Homography Applied',markerImage)
         
+        # Get the current webcam image
+        ret, im_src = cap.read()
+        cv2.imwrite("srcImg.jpg", im_src)
+        print("Getting new image")
+                   
+
         # Did we successfully get a webcam image?
         if ret is True:
             
-            # Detect Aruco Tags and store corner/id values 
-            corners, ids, _ = aruco.detectMarkers(im_src, aruco_dict, parameters=arucoParams, cameraMatrix=mtx, distCoeff=dist)
+            # Detect Aruco Tags and store corner/id values
+            corners, ids, rejected = aruco.detectMarkers(im_src, aruco_dict, parameters=arucoParams, cameraMatrix=mtx, distCoeff=dist)
             
+            im_src = aruco.drawDetectedMarkers(im_src,rejected, None, (0,0,255))
+
+            cv2.imwrite("rejectImg.jpg", im_src)
+            cv2.imshow("Rejected",im_src)
             # Check if any markers were detected and draw them
             if ids is not None:                
                 print("Marker(s) Detected.")
                 
+                f.write("Num IDs: " + str(len(ids)) + "\n") 
+                
+                print("IDs: "+ str(ids))
                 # Draw marker borders if needed for debugging
-                # markerImage = aruco.drawDetectedMarkers(markerImage, corners, ids, (255,0,0))
+                detectedMarkerImage = aruco.drawDetectedMarkers(markerImage, corners, ids, (255,0,0))
+                cv2.imwrite("detectedImg.jpg", detectedMarkerImage)
                 
                 # Get the rotation vectors for each marker
                 rvecs, tvecs , _ = aruco.estimatePoseSingleMarkers(corners, 0.053, cameraMatrix=mtx, distCoeffs=dist)
@@ -385,11 +403,18 @@ def helloWorld():
                 for i in range(0,len(ids)):
 
                     # Convert the rotation vector into a rotation matrix
+                    # Calculate the offset vector
                     rMat, _ = cv2.Rodrigues(rvecs[i])
                     if i is 0: # Initialize Rot Mat storage if first time in the loop
                         rMats = [rMat]
+                        offset = np.dot(rMat,([40],[0],[0]))
+                        offset = np.delete(offset, 2)
+                        offset_vec = [offset]
                     else: # Append the Rot Mats
                         rMats.append(rMat)
+                        offset = [np.dot(rMats[i],([40],[0],[0]))] 
+                        offset = np.delete(offset, 2)
+                        offset_vec.append(offset)
 
                 # For each bit in the message...
                 for bitNum in range(0,len(messg[0])):
@@ -401,32 +426,28 @@ def helloWorld():
                     # Draw an offset polygon for the solar panel
                     for i in range(0,len(ids)): 
 
-                        # Calculate the 2D offset vector in the camera frame 
-                        offset_vec = np.dot(rMats[i],([35],[0],[0])) 
-                        offset_vec = np.delete(offset_vec,2)
-                        
                         # Get and set the bit value for the projected square
                         if bit == 1:
-                            markerImage = cv2.fillPoly(markerImage, [corners[i].astype(int)], (255,255,255), offset=tuple(offset_vec.astype(int)) ) 
+                            markerImage = cv2.fillPoly(markerImage, [corners[i].astype(int)], (255,255,255), offset=tuple(offset_vec[i].astype(int)) ) 
                         elif bit == 0:
-                            markerImage = cv2.fillPoly(markerImage, [corners[i].astype(int)], (0,0,0), offset=tuple(offset_vec.astype(int)) ) 
+                            markerImage = cv2.fillPoly(markerImage, [corners[i].astype(int)], (0,0,0), offset=tuple(offset_vec[i].astype(int)) ) 
                 
                     # Apply homography mapping for final projector image
                     im_out = cv2.warpPerspective(markerImage, h, (1024, 768),flags=cv2.WARP_INVERSE_MAP)
                     
-                    # Set output window properties
-                    cv2.namedWindow("Homography Applied", cv2.WND_PROP_FULLSCREEN )
-                    cv2.setWindowProperty("Homography Applied", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-                    
+                    cv2.imwrite("outImg.jpg", im_out)
+                   
                     # Timing loop
                     while(1):
                         # Get current system time
                         t_curr = time.clock()
-
+                        
                         # Compare the current time step to the refresh rate, if larger then update the image
                         if (t_curr-t_last) >= refresh_rate:
+                            print("Refreshing Image")
                             print("\tCurrent Time: "+ str(t_curr))
-                            print("\tTime step: "+str(t_curr-t_last))
+                            print("\tTime step: "+str(t_curr-t_last) + "\n")
+                            f.write(str(t_curr-t_last)+"\n")
 
                             # Can the pi keep up with the given refresh rate
                             if abs(refresh_rate-(t_curr-t_last))>0.001:
@@ -438,9 +459,8 @@ def helloWorld():
                             t_last = time.clock()
                             cv2.waitKey(1)
                             break
-
-            if cv2.waitKey(1) & 0xFF== ord('q'): # If 'q' is held, break the helloWorld loop
-                break
+                if cv2.waitKey(1) & 0XFF == ord('q'): # If 'q' is pressed, break the helloWorld Test
+                    break
   
 if __name__=='__main__':
     
