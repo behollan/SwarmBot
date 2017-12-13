@@ -150,6 +150,8 @@ def findHomo():
     aruco_dict = aruco.getPredefinedDictionary(0)
     board = aruco.CharucoBoard_create(4, 3 , 1024/4 , 1024/4/2, aruco_dict)
     board_image = board.draw((1024,768))
+    
+    cv2.imwrite("Charuco.jpg",board_image)
 
     # Copy of image for adding prompt text
     board_image_prompt = board_image
@@ -218,8 +220,8 @@ def findHomo():
     # Show the detected markers until the uses presses a key
     cv2.imshow("Detected Markers",homoCapture)
     cv2.waitKey(0)
-
-    # Calculate the homography between the webcam and projector
+    cv2.imwrite("DetectedCorners.jpg", homoCapture)
+    # Calculate the homography betweekkknbh [;n the webcam and projector
     print("Finding homography between:")
     print(pts_src)
     print(charucoCorners)
@@ -329,7 +331,7 @@ def helloWorld():
     print("Loading Parameters...")
     
     # Array of messages to be sent, only supports first message string right now. 
-    messg = np.array([[1,1,0,1,0,0,1,1], [0,1,1,0,0,1,0,1], [0,0,1,0,0,1,0,1], [1,0,0,1,0,0,1,0]])
+    messg = np.array([[1,0,1,1,0,1,0,0,1,1,1,1], [0,1,1,0,0,1,0,1], [0,0,1,0,0,1,0,1], [1,0,0,1,0,0,1,0]])
     print("Message strings:\n "+str(messg))
 
     # Load homography matrix
@@ -351,9 +353,10 @@ def helloWorld():
     # Generate detector parameters
     arucoParams = aruco.DetectorParameters_create()
     arucoParams.adaptiveThreshConstant = 30
+    arucoParams.minMarkerPerimeterRate = 0.05 # Set the minimum marker size to consider
 
     # Set refresh rate parameters
-    fps = 5 # Projector update frames per second
+    fps = 4 # Projector update frames per second
     refresh_rate = 1.0/fps # Clock rate (Hz)
 
     # Print loaded config properties
@@ -361,7 +364,7 @@ def helloWorld():
     print("\nDistortion coefficients: \n" + str(dist))
     print("\nFrames per second: " + str(fps))
     print("\t"+str(1.0/fps)+" seconds/frame")
-    print("\t"+str(8.0/fps)+" seconds/messgae")
+    print("\t"+str(12.0/fps)+" seconds/messae")
     time.sleep(3)
 
     # Start main detection and projection loop
@@ -378,144 +381,156 @@ def helloWorld():
 
     # Run the main projection and detection loop until 'q' is held down
     while(1):
-        # Clear the marker image and IDs
-
-        ids = None
-        markerImage = np.zeros((1024,768),np.uint8)
-
-       
-        # Get the current webcam image
-        ret, im_src = cap.read()
         
-        # Write the image to a file
-        # cv2.imwrite("srcImg.jpg", im_src)
-
-        print("Getting new image")
-
-        # Get the time since the last image and log it
-        im_timer = time.clock()-im_timer_last
-        camera_log = np.append([camera_log], [im_timer])
-        print("Time since last image:"+str(im_timer))
-        
-        # Reset the image timer
-        im_timer_last = time.clock()           
-
-        
-        # Did we successfully get a webcam image?
-        if ret is True:
+        # For each bit in the message...
+        for bitNum in range(0,len(messg[0])):
+             
+            # Clear the marker image and IDs
+            ids = None
+            markerImage = np.zeros((1024,768),np.uint8)
+           
+            # Get the current webcam image
+            ret, im_src = cap.read()
             
-            # Detect Aruco Tags and store corner/id values
-            timer = time.clock()
-            corners, ids, rejected = aruco.detectMarkers(im_src, aruco_dict, parameters=arucoParams, cameraMatrix=mtx, distCoeff=dist)
-            print("Time spent detecting markers: " + str(time.clock()-timer))
-            
-            # Append detection timer values to the detection log
-            detection_log = np.append(detection_log, [time.clock()-timer])
+            # Write the image to a file
+            # cv2.imwrite("srcImg.jpg", im_src)
 
-            # Draw rejected markers on top of source image, useful for debugging
-            # im_src = aruco.drawDetectedMarkers(im_src,rejected, None, (0,0,255))
+            print("Getting new image")
 
-            # Save rejected markers to a file
-            # cv2.imwrite("rejectImg.jpg", im_src)
+            # Get the time since the last image and log it
+            im_timer = time.clock()-im_timer_last
+            camera_log = np.append([camera_log], [im_timer])
+            print("Time since last image:"+str(im_timer))
             
-            # Show rejected markers
-            # cv2.imshow("Rejected",im_src)
-        
-            # Check if any markers were detected and draw them
-            if ids is not None:                
-                print("Marker(s) Detected.")
+            # Reset the image timer
+            im_timer_last = time.clock()           
+
+                        
+            # Did we successfully get a webcam image?
+            if ret is True:
                 
-                # Write the number of detected IDs to a file
-                # f.write("Num IDs: " + str(len(ids)) + "\n") 
-                
-                print("IDs:\n"+ str(ids))
-                
-                # Draw marker borders if needed for debugging
-                # detectedMarkerImage = aruco.drawDetectedMarkers(markerImage, corners, ids, (255,0,0))
-                
-                # Save detected marker image to a file
-                # cv2.imwrite("detectedImg.jpg", detectedMarkerImage)
-                
-                # Get the rotation vectors for each marker
+                # Detect Aruco Tags and store corner/id values
                 timer = time.clock()
-                rvecs, tvecs , _ = aruco.estimatePoseSingleMarkers(corners, 0.053, cameraMatrix=mtx, distCoeffs=dist)
-                print("Time estimating pose: " + str(time.clock()-timer))
-                pose_log = np.append(pose_log, [time.clock()-timer])
+                corners, ids, rejected = aruco.detectMarkers(im_src, aruco_dict, parameters=arucoParams, cameraMatrix=mtx, distCoeff=dist)
+                print("Time spent detecting markers: " + str(time.clock()-timer))
                 
-                timer = time.clock()
-                
-                # For each individual marker...
-                for i in range(0,len(ids)):
+                # Append detection timer values to the detection log
+                detection_log = np.append(detection_log, [time.clock()-timer])
 
-                    # Convert the rotation vector into a rotation matrix
-                    # Calculate the offset vector
-                    rMat, _ = cv2.Rodrigues(rvecs[i])
-                    if i is 0: # Initialize Rot Mat storage if first time in the loop
-                        rMats = [rMat]
-                        offset = np.dot(rMat,([40],[0],[0]))
-                        offset = np.delete(offset, 2)
-                        offset_vec = [offset]
-                    else: # Append the Rot Mats
-                        rMats.append(rMat)
-                        offset = [np.dot(rMats[i],([40],[0],[0]))] 
-                        offset = np.delete(offset, 2)
-                        offset_vec.append(offset)
-                
-                    corners[i] = (corners[i]-offset_vec[i])
-                
-                # Time spent rotating and offsetting corner vectors
-                print("Time spent rotating and offsetting squares: " + str(time.clock()-timer))
-                rot_log = np.append(rot_log, [time.clock()-timer])
+                # Draw rejected markers on top of source image, useful for debugging
+                im_src = aruco.drawDetectedMarkers(im_src,rejected, None, (0,0,255))
 
-                # For each bit in the message...
-                for bitNum in range(0,len(messg[0])):
+                # Save rejected markers to a file
+                # cv2.imwrite("rejectImg.jpg", im_src)
+                
+                # Show rejected markers
+                # cv2.imshow("Rejected",im_src)
+            
+                # Check if any markers were detected and draw them
+                if ids is not None:                
+                    print("Marker(s) Detected.")
+                    print("IDs:\n"+ str(ids))
                     
+                    # Draw marker borders if needed for debugging
+                    detectedMarkerImage = aruco.drawDetectedMarkers(im_src, corners, ids, (255,0,0))
+                    
+                    # Save detected marker image to a file
+                    # cv2.imwrite("detectedImg.jpg", detectedMarkerImage)
+                    
+                    # Get the rotation vectors for each marker
+                    timer = time.clock()
+                    rvecs, tvecs , _ = aruco.estimatePoseSingleMarkers(corners, 0.053, cameraMatrix=mtx, distCoeffs=dist)
+                    print("Time estimating pose: " + str(time.clock()-timer))
+                    pose_log = np.append(pose_log, [time.clock()-timer])
+                    
+                    timer = time.clock()
+                    
+                    # For each individual marker...
+                    for i in range(0,len(ids)):
+
+                        # Convert the rotation vector into a rotation matrix
+                        # Calculate the offset vector
+                        rMat, _ = cv2.Rodrigues(rvecs[i])
+                        if i is 0: # Initialize Rot Mat storage if first time in the loop
+                            rMats = [rMat]
+                            offset = np.dot(rMat,([40],[0],[0]))
+                            offset = np.delete(offset, 2)
+                            offset_vec = [offset]
+                        else: # Append the Rot Mats
+                            rMats.append(rMat)
+                            offset = [np.dot(rMats[i],([40],[0],[0]))] 
+                            offset = np.delete(offset, 2)
+                            offset_vec.append(offset)
+                    
+                        corners[i] = (corners[i]-offset_vec[i])
+                    
+                    # Time spent rotating and offsetting corner vectors
+                    print("Time spent rotating and offsetting squares: " + str(time.clock()-timer))
+                    rot_log = np.append(rot_log, [time.clock()-timer])
+
+                      
                     # Set the message bit
                     bit = messg[0][bitNum]
                     print("Sending Bit: " + str(bit))
                     
                     # Draw an offset polygon for the solar panel
                     for i in range(0,len(ids)): 
-
+ 
                         # Get and set the bit value for the projected square
                         if bit == 1:
                             markerImage = cv2.fillConvexPoly(markerImage, corners[i].astype(int), (255,255,255)) 
                         elif bit == 0:
                             markerImage = cv2.fillConvexPoly(markerImage, corners[i].astype(int), (0,0,0) ) 
-                
+                        
                     # Apply homography mapping for final projector image
                     timer = time.clock()
                     im_out = cv2.warpPerspective(markerImage, h, (1024, 768),flags=cv2.WARP_INVERSE_MAP)
                     print("Time spend applying homography: " + str(time.clock()-timer))
-                    homo_log = np.append(homo_log, [time.clock()-timer])
                     
-                    cv2.imwrite("outImg.jpg", im_out)
-                   
+                    # Add some debug information to the output image
+                    cv2.putText(im_out, "Current bit: "+str(bit), (0, 100), font, 0.75, (255,255,255))
+                    cv2.putText(im_out, "Number of markers: "+str(len(ids)), (0, 140), font, 0.75, (255,255,255))
+
+                    # Log the homography application timer
+                    homo_log = np.append(homo_log, [time.clock()-timer])
+                      
+                       
                     # Timing loop
                     while(1):
                         # Get current system time
                         t_curr = time.clock()
-                        
+                       
                         # Compare the current time step to the refresh rate, if larger then update the image
                         if (t_curr-t_last) >= refresh_rate:
                             print("Refreshing Image")
                             print("\tCurrent Time: "+ str(t_curr))
                             print("\tTime step: "+str(t_curr-t_last) + "\n")
                             
+                            # Log the projector refresh rate
                             proj_log = np.append(proj_log,[t_curr-t_last])
-
+                            
+                            cv2.putText(im_out, "Clock rate: "+str(t_curr-t_last), (0,120), font, 0.75, (255,255,255))
+                            
+                            # cv2.imwrite("outImg.jpg", im_out)
+                            
                             # Can the pi keep up with the given refresh rate
                             if abs(refresh_rate-(t_curr-t_last))>0.01:
                                 print("\tCan't keep up. Slow the refresh rate.")
-                            print('\n\n')
-                            cv2.imshow('Homography Applied', im_out)
+                                print('\n\n')
                             
+                            # Show the image on the projector
+                            cv2.imshow('Homography Applied', im_out)
+                           
                             # Set the new "Last updated" timer value
                             t_last = time.clock()
-                            cv2.waitKey(1)
+                            if cv2.waitKey(1) & 0XFF == ord('q'):
+                                break
+                            
+                            # Image updated, do another projection detection loop
                             break
-                if cv2.waitKey(1) & 0XFF == ord('q'): # If 'q' is pressed, break the helloWorld Test
+        if cv2.waitKey(1) & 0XFF == ord('q'): # If 'q' is pressed, break the helloWorld Test
                     break
+
     np.savetxt("proj.log", proj_log, delimiter=',', header='Projection image timer: '+unicode(datetime.datetime.now()))
     np.savetxt("detect.log", detection_log, delimiter=',', header='Marker Detection timer: '+unicode(datetime.datetime.now()))
     np.savetxt("camera.log", camera_log, delimiter=',', header='Image grab timer: '+unicode(datetime.datetime.now()))
