@@ -28,4 +28,4 @@ Because the camera and the projector do not have the same field of view, a homog
 The homography transformation allows the signals to be projected only to the solar panel location. This allows for individual robot communication and prevents the projected image from interfering with the AR tag detection. In addition, it ensures that the message is in the correct location regardless of discrepancies between to field of view.
 
 # Demos
-Eventually this section will be populated with Demo videos
+Preliminary AR Tag sensing: https://www.youtube.com/watch?v=5Qqzk7-iV48
